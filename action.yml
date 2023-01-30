@@ -1,11 +1,29 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: Check GraphQL
+description: Checks your GraphQL endpoint for problems
+author: 'Dylan Anthony'
 inputs:
-  milliseconds: # change this
+  endpoint:
+    description: 'The GraphQL endpoint to check'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  auth:
+    description: 'The Authorization header to use'
+    required: false
+    default: ''
+  subgraph:
+    description: 'Whether the graph is a subgraph'
+    required: false
+    default: 'false'
+  allow_introspection:
+    description: 'Whether introspection is allowed, defaults to value of `subgraph`'
+    required: false
+    default: ''
+  insecure_subgraph:
+    description: 'Whether the subgraph is allowed to be insecure'
+    required: false
+    default: 'false'
+outputs:
+  error:
+    description: 'The description of any error that occurred'
 runs:
   using: 'node16'
   main: 'dist/index.js'
