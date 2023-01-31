@@ -10573,24 +10573,30 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 // eslint-disable-next-line import/named
 
 
-function check(endpoint, authHeader, subgraph) {
+function check(args) {
     return __awaiter(this, void 0, void 0, function* () {
         const client = lib_axios.create({
-            baseURL: endpoint,
+            baseURL: args.endpoint,
         });
         const errors = [];
         const basicError = yield basic(client);
         core.debug(`Basic (no auth) check returned: ${basicError}`);
-        if (authHeader.length > 0) {
-            errors.push(...(yield checkAuth(client, authHeader, basicError)));
+        if (args.authHeader.length > 0) {
+            errors.push(...(yield checkAuth(client, args.authHeader, basicError)));
         }
         else if (basicError) {
             errors.push(`Basic check failed: ${basicError}`);
         }
-        if (subgraph) {
+        if (args.subgraph) {
             const subgraphError = yield checkSubgraph(client);
             if (subgraphError) {
                 errors.push(`Subgraph check failed: ${subgraphError}`);
+            }
+        }
+        if (!args.allowIntrospection) {
+            const introspectionError = yield enforceNoIntrospection(client);
+            if (introspectionError) {
+                errors.push(`Introspection check failed: ${introspectionError}`);
             }
         }
         return [...new Set(errors)];
@@ -10664,6 +10670,30 @@ function checkSubgraph(client) {
         return null;
     });
 }
+function enforceNoIntrospection(client) {
+    var _a, _b, _c;
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield client.post("", { query: "query{__schema{types{name}}}" });
+            if (response && ((_c = (_b = (_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.__schema) === null || _c === void 0 ? void 0 : _c.types)) {
+                return "Server allows introspection";
+            }
+        }
+        catch (unknownError) {
+            const error = unknownError;
+            if (error.response) {
+                return `HTTP ${error.response.status}: ${error.response.statusText}`;
+            }
+            else if (error.request) {
+                return `No response from server`;
+            }
+            else {
+                return error.message;
+            }
+        }
+        return null;
+    });
+}
 
 ;// CONCATENATED MODULE: ./lib/main.js
 var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -10677,22 +10707,37 @@ var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
 };
 
 
+function parseBool({ fieldName, errors, defaultValue, }) {
+    const rawValue = core.getInput(fieldName);
+    if (rawValue === "true") {
+        return true;
+    }
+    else if (rawValue === "false") {
+        return false;
+    }
+    else if (rawValue === "" && defaultValue !== undefined) {
+        return defaultValue;
+    }
+    else {
+        errors.push(`Input \`${fieldName}\` must be \`true\` or \`false\``);
+        return null;
+    }
+}
 function run() {
+    var _a, _b;
     return main_awaiter(this, void 0, void 0, function* () {
         try {
+            const errors = [];
             const endpoint = core.getInput("endpoint");
             const authHeader = core.getInput("auth");
-            const subgraphInput = core.getInput("subgraph");
-            const errors = [];
-            let subgraph = false;
-            if (subgraphInput === "true") {
-                subgraph = true;
-            }
-            else if (subgraphInput !== "false") {
-                errors.push("Input `subgraph` must be `true` or `false`");
-            }
+            const subgraph = (_a = parseBool({ fieldName: "subgraph", errors })) !== null && _a !== void 0 ? _a : false;
+            const allowIntrospection = (_b = parseBool({
+                fieldName: "allow_introspection",
+                errors,
+                defaultValue: subgraph,
+            })) !== null && _b !== void 0 ? _b : true;
             core.debug(`Testing ${endpoint} ...`);
-            errors.push(...(yield check(endpoint, authHeader, subgraph)));
+            errors.push(...(yield check({ endpoint, authHeader, subgraph, allowIntrospection })));
             if (errors.length > 0) {
                 const errorMessage = errors.join(",");
                 core.setOutput("error", errorMessage);

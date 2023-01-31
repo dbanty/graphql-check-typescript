@@ -2,22 +2,33 @@
 import axios, {AxiosError, AxiosInstance} from "axios"
 import * as core from "@actions/core"
 
-export async function check(endpoint: string, authHeader: string, subgraph: boolean): Promise<string[]> {
+export async function check(args: {
+    endpoint: string
+    authHeader: string
+    subgraph: boolean
+    allowIntrospection: boolean
+}): Promise<string[]> {
     const client = axios.create({
-        baseURL: endpoint,
+        baseURL: args.endpoint,
     })
     const errors: string[] = []
     const basicError = await basic(client)
     core.debug(`Basic (no auth) check returned: ${basicError}`)
-    if (authHeader.length > 0) {
-        errors.push(...(await checkAuth(client, authHeader, basicError)))
+    if (args.authHeader.length > 0) {
+        errors.push(...(await checkAuth(client, args.authHeader, basicError)))
     } else if (basicError) {
         errors.push(`Basic check failed: ${basicError}`)
     }
-    if (subgraph) {
+    if (args.subgraph) {
         const subgraphError = await checkSubgraph(client)
         if (subgraphError) {
             errors.push(`Subgraph check failed: ${subgraphError}`)
+        }
+    }
+    if (!args.allowIntrospection) {
+        const introspectionError = await enforceNoIntrospection(client)
+        if (introspectionError) {
+            errors.push(`Introspection check failed: ${introspectionError}`)
         }
     }
     return [...new Set(errors)]
@@ -66,6 +77,25 @@ async function checkSubgraph(client: AxiosInstance): Promise<string | null> {
         const response = await client.post("", {query: "query{_service{sdl}}"})
         if (response && !response?.data?.data?._service?.sdl) {
             return "Server is not a federated subgraph"
+        }
+    } catch (unknownError) {
+        const error = unknownError as AxiosError
+        if (error.response) {
+            return `HTTP ${error.response.status}: ${error.response.statusText}`
+        } else if (error.request) {
+            return `No response from server`
+        } else {
+            return error.message
+        }
+    }
+    return null
+}
+
+async function enforceNoIntrospection(client: AxiosInstance): Promise<string | null> {
+    try {
+        const response = await client.post("", {query: "query{__schema{types{name}}}"})
+        if (response && response?.data?.data?.__schema?.types) {
+            return "Server allows introspection"
         }
     } catch (unknownError) {
         const error = unknownError as AxiosError

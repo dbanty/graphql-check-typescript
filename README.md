@@ -63,8 +63,8 @@ It expects this response:
 
 ## Introspection disabled
 
-Unless the `subgraph` input is set to `true`, this action will fail if the GraphQL server responds to an introspection
-query. The query will be:
+Unless the `subgraph` input is set to `true` or `allow_introspection` is set to `true`, this action will fail if the
+GraphQL server responds to an introspection query. The query will be:
 
 ```graphql
 query {

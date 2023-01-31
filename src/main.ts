@@ -1,24 +1,44 @@
 import * as core from "@actions/core"
 import {check} from "./check"
 
+function parseBool({
+    fieldName,
+    errors,
+    defaultValue,
+}: {
+    fieldName: string
+    errors: string[]
+    defaultValue?: boolean
+}): boolean | null {
+    const rawValue = core.getInput(fieldName)
+    if (rawValue === "true") {
+        return true
+    } else if (rawValue === "false") {
+        return false
+    } else if (rawValue === "" && defaultValue !== undefined) {
+        return defaultValue
+    } else {
+        errors.push(`Input \`${fieldName}\` must be \`true\` or \`false\``)
+        return null
+    }
+}
+
 async function run(): Promise<void> {
     try {
+        const errors: string[] = []
         const endpoint: string = core.getInput("endpoint")
         const authHeader: string = core.getInput("auth")
-        const subgraphInput: string = core.getInput("subgraph")
-
-        const errors = []
-
-        let subgraph = false
-        if (subgraphInput === "true") {
-            subgraph = true
-        } else if (subgraphInput !== "false") {
-            errors.push("Input `subgraph` must be `true` or `false`")
-        }
+        const subgraph = parseBool({fieldName: "subgraph", errors}) ?? false
+        const allowIntrospection =
+            parseBool({
+                fieldName: "allow_introspection",
+                errors,
+                defaultValue: subgraph,
+            }) ?? true
 
         core.debug(`Testing ${endpoint} ...`)
 
-        errors.push(...(await check(endpoint, authHeader, subgraph)))
+        errors.push(...(await check({endpoint, authHeader, subgraph, allowIntrospection})))
 
         if (errors.length > 0) {
             const errorMessage = errors.join(",")
