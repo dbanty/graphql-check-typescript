@@ -158,7 +158,7 @@ test("insecure subgraph not allowed", async () => {
     const errors = await check({
         endpoint: `${BASE_URL}/subgraph`,
         authHeader: "",
-        subgraph: true,
+        subgraph: false,
         allowIntrospection: true,
         allowInsecureSubgraphs: false,
     })
@@ -169,7 +169,7 @@ test("insecure subgraph override", async () => {
     const errors = await check({
         endpoint: `${BASE_URL}/subgraph`,
         authHeader: "",
-        subgraph: true,
+        subgraph: false,
         allowIntrospection: true,
         allowInsecureSubgraphs: true,
     })

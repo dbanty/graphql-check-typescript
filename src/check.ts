@@ -17,19 +17,15 @@ export async function check(args: {
     core.debug(`Basic (no auth) check returned: ${basicError}`)
     if (args.authHeader.length > 0) {
         errors.push(...(await checkAuth(client, args.authHeader, basicError)))
-    } else {
-        if (basicError) {
-            errors.push(`Basic check failed: ${basicError}`)
-        }
-        if (args.subgraph && !args.allowInsecureSubgraphs) {
-            errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`")
-        }
+    } else if (basicError) {
+        errors.push(`Basic check failed: ${basicError}`)
     }
-    if (args.subgraph) {
-        const subgraphError = await checkSubgraph(client)
-        if (subgraphError) {
-            errors.push(`Subgraph check failed: ${subgraphError}`)
-        }
+    const subgraphError = await checkSubgraph(client)
+    if (args.subgraph && subgraphError) {
+        errors.push(`Subgraph check failed: ${subgraphError}`)
+    }
+    if (args.authHeader.length === 0 && !subgraphError && !args.allowInsecureSubgraphs) {
+        errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`")
     }
     if (!args.allowIntrospection) {
         const introspectionError = await enforceNoIntrospection(client)
