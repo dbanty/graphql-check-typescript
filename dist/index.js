@@ -10571,12 +10571,25 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
     });
 };
 
-function check(endpoint) {
+function check(endpoint, authHeader) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const client = lib_axios.create({
+            baseURL: endpoint,
+        });
+        if (authHeader.length > 0) {
+            // TODO: handle bad inputs
+            const [key, value] = authHeader.split(":").map(str => str.trim());
+            client.defaults.headers.common[key] = value;
+        }
+        return yield basic(client);
+    });
+}
+function basic(client) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         const errors = [];
         try {
-            const response = yield lib_axios.post(endpoint, { query: "query{__typename}" });
+            const response = yield client.post("", { query: "query{__typename}" });
             if (response && ((_b = (_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.__typename) !== "Query") {
                 errors.push(`Unexpected response: ${JSON.stringify(response === null || response === void 0 ? void 0 : response.data)}`);
             }
@@ -10613,8 +10626,9 @@ function run() {
     return main_awaiter(this, void 0, void 0, function* () {
         try {
             const endpoint = core.getInput("endpoint");
+            const authHeader = core.getInput("auth");
             core.debug(`Testing ${endpoint} ...`);
-            const errors = yield check(endpoint);
+            const errors = yield check(endpoint, authHeader);
             if (errors.length > 0) {
                 const errorMessage = errors.join(",");
                 core.setOutput("error", errorMessage);
