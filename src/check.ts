@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/named
 import axios, {AxiosError, AxiosInstance} from "axios"
+import * as core from "@actions/core"
 
 export async function check(endpoint: string, authHeader: string): Promise<string[]> {
     const client = axios.create({
@@ -7,20 +8,22 @@ export async function check(endpoint: string, authHeader: string): Promise<strin
     })
     const errors: string[] = []
     const basicError = await basic(client)
+    core.debug(`Basic (no auth) check returned: ${basicError}`)
     if (authHeader.length > 0) {
         const [key, value] = authHeader.split(":").map(str => str.trim())
         if (value === undefined) {
             return ["Auth header was malformed, must look like `key: value`"]
         }
         client.defaults.headers.common[key] = value
-        if (!basicError) {
+        if (basicError != null) {
             errors.push("Auth was not enforced for endpoint")
         }
         const authError = await basic(client)
-        if (authError) {
+        core.debug(`Auth check returned: ${authError}`)
+        if (authError != null) {
             errors.push(`Auth failed: ${authError}`)
         }
-    } else if (basicError) {
+    } else if (basicError != null) {
         errors.push(`Basic check failed: ${basicError}`)
     }
     return errors
