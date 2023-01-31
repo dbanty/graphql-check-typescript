@@ -10573,7 +10573,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 // eslint-disable-next-line import/named
 
 
-function check(endpoint, authHeader) {
+function check(endpoint, authHeader, subgraph) {
     return __awaiter(this, void 0, void 0, function* () {
         const client = lib_axios.create({
             baseURL: endpoint,
@@ -10582,24 +10582,18 @@ function check(endpoint, authHeader) {
         const basicError = yield basic(client);
         core.debug(`Basic (no auth) check returned: ${basicError}`);
         if (authHeader.length > 0) {
-            const [key, value] = authHeader.split(":").map(str => str.trim());
-            if (value === undefined) {
-                return ["Auth header was malformed, must look like `key: value`"];
-            }
-            client.defaults.headers.common[key] = value;
-            if (!basicError) {
-                errors.push("Auth was not enforced for endpoint");
-            }
-            const authError = yield basic(client);
-            core.debug(`Auth check returned: ${authError}`);
-            if (authError) {
-                errors.push(`Auth failed: ${authError}`);
-            }
+            errors.push(...(yield checkAuth(client, authHeader, basicError)));
         }
         else if (basicError) {
             errors.push(`Basic check failed: ${basicError}`);
         }
-        return errors;
+        if (subgraph) {
+            const subgraphError = yield checkSubgraph(client);
+            if (subgraphError) {
+                errors.push(`Subgraph check failed: ${subgraphError}`);
+            }
+        }
+        return [...new Set(errors)];
     });
 }
 function basic(client) {
@@ -10609,6 +10603,50 @@ function basic(client) {
             const response = yield client.post("", { query: "query{__typename}" });
             if (response && ((_b = (_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.__typename) !== "Query") {
                 return `Unexpected response: ${JSON.stringify(response === null || response === void 0 ? void 0 : response.data)}`;
+            }
+        }
+        catch (unknownError) {
+            const error = unknownError;
+            if (error.response) {
+                return `HTTP ${error.response.status}: ${error.response.statusText}`;
+            }
+            else if (error.request) {
+                return `No response from server`;
+            }
+            else {
+                return error.message;
+            }
+        }
+        return null;
+    });
+}
+function checkAuth(client, authHeader, basicError) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const errors = [];
+        if (!basicError) {
+            errors.push("Auth was not enforced for endpoint");
+        }
+        const [key, value] = authHeader.split(":").map(str => str.trim());
+        if (value === undefined) {
+            errors.push("Auth header was malformed, must look like `key: value`");
+            return errors;
+        }
+        client.defaults.headers.common[key] = value;
+        const authError = yield basic(client);
+        core.debug(`Auth check returned: ${authError}`);
+        if (authError) {
+            errors.push(`Auth failed: ${authError}`);
+        }
+        return errors;
+    });
+}
+function checkSubgraph(client) {
+    var _a, _b, _c;
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const response = yield client.post("", { query: "query{_service{sdl}}" });
+            if (response && !((_c = (_b = (_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b._service) === null || _c === void 0 ? void 0 : _c.sdl)) {
+                return "Server is not a federated subgraph";
             }
         }
         catch (unknownError) {
@@ -10644,8 +10682,17 @@ function run() {
         try {
             const endpoint = core.getInput("endpoint");
             const authHeader = core.getInput("auth");
+            const subgraphInput = core.getInput("subgraph");
+            const errors = [];
+            let subgraph = false;
+            if (subgraphInput === "true") {
+                subgraph = true;
+            }
+            else if (subgraphInput !== "false") {
+                errors.push("Input `subgraph` must be `true` or `false`");
+            }
             core.debug(`Testing ${endpoint} ...`);
-            const errors = yield check(endpoint, authHeader);
+            errors.concat(yield check(endpoint, authHeader, subgraph));
             if (errors.length > 0) {
                 const errorMessage = errors.join(",");
                 core.setOutput("error", errorMessage);

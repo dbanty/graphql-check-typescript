@@ -5,9 +5,20 @@ async function run(): Promise<void> {
     try {
         const endpoint: string = core.getInput("endpoint")
         const authHeader: string = core.getInput("auth")
+        const subgraphInput: string = core.getInput("subgraph")
+
+        const errors = []
+
+        let subgraph = false
+        if (subgraphInput === "true") {
+            subgraph = true
+        } else if (subgraphInput !== "false") {
+            errors.push("Input `subgraph` must be `true` or `false`")
+        }
+
         core.debug(`Testing ${endpoint} ...`)
 
-        const errors = await check(endpoint, authHeader)
+        errors.concat(await check(endpoint, authHeader, subgraph))
 
         if (errors.length > 0) {
             const errorMessage = errors.join(",")

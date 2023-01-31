@@ -4,32 +4,32 @@ import {check} from "../src/check"
 const BASE_URL = "https://graphql-test.up.railway.app"
 
 test("basic checks happy path", async () => {
-    const errors = await check(`${BASE_URL}/graphql`, "")
+    const errors = await check(`${BASE_URL}/graphql`, "", false)
     expect(errors).toHaveLength(0)
 })
 
 test("bad URL", async () => {
-    const errors = await check(BASE_URL.substring(BASE_URL.lastIndexOf("/")), "")
+    const errors = await check(BASE_URL.substring(BASE_URL.lastIndexOf("/")), "", false)
     expect(errors).toHaveLength(1)
 })
 
 test("non-JSON response", async () => {
-    const errors = await check(`${BASE_URL}/no-json`, "")
+    const errors = await check(`${BASE_URL}/no-json`, "", false)
     expect(errors).toHaveLength(1)
 })
 
 test("non-GraphQL response", async () => {
-    const errors = await check(`${BASE_URL}/json`, "")
+    const errors = await check(`${BASE_URL}/json`, "", false)
     expect(errors).toHaveLength(1)
 })
 
 test("invalid auth header", async () => {
-    const errors = await check(`${BASE_URL}/graphql`, "notaheader")
+    const errors = await check(`${BASE_URL}/graphql-auth`, "notaheader", false)
     expect(errors).toHaveLength(1)
 })
 
 test("bad auth", async () => {
-    const errors = await check(`${BASE_URL}/graphql-auth`, "Authorization: bad")
+    const errors = await check(`${BASE_URL}/graphql-auth`, "Authorization: bad", false)
     expect(errors).toHaveLength(1)
 })
 
@@ -42,11 +42,21 @@ function header(): string {
 }
 
 test("happy auth", async () => {
-    const errors = await check(`${BASE_URL}/graphql-auth`, header())
+    const errors = await check(`${BASE_URL}/graphql-auth`, header(), false)
     expect(errors).toHaveLength(0)
 })
 
 test("auth not enforced", async () => {
-    const errors = await check(`${BASE_URL}/graphql`, header())
+    const errors = await check(`${BASE_URL}/graphql`, header(), false)
+    expect(errors).toHaveLength(1)
+})
+
+test("is subgraph", async () => {
+    const errors = await check(`${BASE_URL}/subgraph-auth`, header(), true)
+    expect(errors).toHaveLength(0)
+})
+
+test("is not subgraph", async () => {
+    const errors = await check(`${BASE_URL}/graphql-auth`, header(), true)
     expect(errors).toHaveLength(1)
 })
