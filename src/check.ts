@@ -7,7 +7,7 @@ export async function check(args: {
     endpoint: string
     subgraph: boolean
     allowInsecureSubgraphs: boolean
-    allowIntrospection: boolean
+    allowIntrospection: boolean | null
 }): Promise<string[]> {
     const client = axios.create({
         baseURL: args.endpoint,
@@ -27,7 +27,8 @@ export async function check(args: {
     if (args.authHeader.length === 0 && !subgraphError && !args.allowInsecureSubgraphs) {
         errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`")
     }
-    if (!args.allowIntrospection) {
+    const allowIntrospection = args.allowIntrospection ?? !subgraphError
+    if (allowIntrospection) {
         const introspectionError = await enforceNoIntrospection(client)
         if (introspectionError) {
             errors.push(`Introspection check failed: ${introspectionError}`)

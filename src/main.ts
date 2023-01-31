@@ -1,22 +1,12 @@
 import * as core from "@actions/core"
 import {check} from "./check"
 
-function parseBool({
-    fieldName,
-    errors,
-    defaultValue,
-}: {
-    fieldName: string
-    errors: string[]
-    defaultValue?: boolean
-}): boolean | null {
+function parseBool({fieldName, errors}: {fieldName: string; errors: string[]}): boolean | null {
     const rawValue = core.getInput(fieldName)
     if (rawValue === "true") {
         return true
     } else if (rawValue === "false") {
         return false
-    } else if (rawValue === "" && defaultValue !== undefined) {
-        return defaultValue
     } else {
         errors.push(`Input \`${fieldName}\` must be \`true\` or \`false\``)
         return null
@@ -29,12 +19,10 @@ async function run(): Promise<void> {
         const endpoint: string = core.getInput("endpoint")
         const authHeader: string = core.getInput("auth")
         const subgraph = parseBool({fieldName: "subgraph", errors}) ?? false
-        const allowIntrospection =
-            parseBool({
-                fieldName: "allow_introspection",
-                errors,
-                defaultValue: subgraph,
-            }) ?? true
+        const allowIntrospection = parseBool({
+            fieldName: "allow_introspection",
+            errors,
+        })
         const allowInsecureSubgraphs =
             parseBool({
                 fieldName: "insecure_subgraph",

@@ -10574,6 +10574,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 
 
 function check(args) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const client = lib_axios.create({
             baseURL: args.endpoint,
@@ -10594,7 +10595,8 @@ function check(args) {
         if (args.authHeader.length === 0 && !subgraphError && !args.allowInsecureSubgraphs) {
             errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`");
         }
-        if (!args.allowIntrospection) {
+        const allowIntrospection = (_a = args.allowIntrospection) !== null && _a !== void 0 ? _a : !subgraphError;
+        if (allowIntrospection) {
             const introspectionError = yield enforceNoIntrospection(client);
             if (introspectionError) {
                 errors.push(`Introspection check failed: ${introspectionError}`);
@@ -10708,7 +10710,7 @@ var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
 };
 
 
-function parseBool({ fieldName, errors, defaultValue, }) {
+function parseBool({ fieldName, errors }) {
     const rawValue = core.getInput(fieldName);
     if (rawValue === "true") {
         return true;
@@ -10716,31 +10718,27 @@ function parseBool({ fieldName, errors, defaultValue, }) {
     else if (rawValue === "false") {
         return false;
     }
-    else if (rawValue === "" && defaultValue !== undefined) {
-        return defaultValue;
-    }
     else {
         errors.push(`Input \`${fieldName}\` must be \`true\` or \`false\``);
         return null;
     }
 }
 function run() {
-    var _a, _b, _c;
+    var _a, _b;
     return main_awaiter(this, void 0, void 0, function* () {
         try {
             const errors = [];
             const endpoint = core.getInput("endpoint");
             const authHeader = core.getInput("auth");
             const subgraph = (_a = parseBool({ fieldName: "subgraph", errors })) !== null && _a !== void 0 ? _a : false;
-            const allowIntrospection = (_b = parseBool({
+            const allowIntrospection = parseBool({
                 fieldName: "allow_introspection",
                 errors,
-                defaultValue: subgraph,
-            })) !== null && _b !== void 0 ? _b : true;
-            const allowInsecureSubgraphs = (_c = parseBool({
+            });
+            const allowInsecureSubgraphs = (_b = parseBool({
                 fieldName: "insecure_subgraph",
                 errors,
-            })) !== null && _c !== void 0 ? _c : false;
+            })) !== null && _b !== void 0 ? _b : false;
             core.debug(`Testing ${endpoint} ...`);
             errors.push(...(yield check({ endpoint, authHeader, subgraph, allowIntrospection, allowInsecureSubgraphs })));
             if (errors.length > 0) {
