@@ -10570,43 +10570,60 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// eslint-disable-next-line import/named
+
 
 function check(endpoint, authHeader) {
     return __awaiter(this, void 0, void 0, function* () {
         const client = lib_axios.create({
             baseURL: endpoint,
         });
+        const errors = [];
+        const basicError = yield basic(client);
+        core.debug(`Basic (no auth) check returned: ${basicError}`);
         if (authHeader.length > 0) {
-            // TODO: handle bad inputs
             const [key, value] = authHeader.split(":").map(str => str.trim());
+            if (value === undefined) {
+                return ["Auth header was malformed, must look like `key: value`"];
+            }
             client.defaults.headers.common[key] = value;
+            if (basicError) {
+                errors.push("Auth was not enforced for endpoint");
+            }
+            const authError = yield basic(client);
+            core.debug(`Auth check returned: ${authError}`);
+            if (authError) {
+                errors.push(`Auth failed: ${authError}`);
+            }
         }
-        return yield basic(client);
+        else if (basicError) {
+            errors.push(`Basic check failed: ${basicError}`);
+        }
+        return errors;
     });
 }
 function basic(client) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const errors = [];
         try {
             const response = yield client.post("", { query: "query{__typename}" });
             if (response && ((_b = (_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.__typename) !== "Query") {
-                errors.push(`Unexpected response: ${JSON.stringify(response === null || response === void 0 ? void 0 : response.data)}`);
+                return `Unexpected response: ${JSON.stringify(response === null || response === void 0 ? void 0 : response.data)}`;
             }
         }
         catch (unknownError) {
             const error = unknownError;
             if (error.response) {
-                errors.push(`HTTP ${error.response.status}: ${error.response.statusText}`);
+                return `HTTP ${error.response.status}: ${error.response.statusText}`;
             }
             else if (error.request) {
-                errors.push(`No response from server`);
+                return `No response from server`;
             }
             else {
-                errors.push(error.message);
+                return error.message;
             }
         }
-        return errors;
+        return null;
     });
 }
 
