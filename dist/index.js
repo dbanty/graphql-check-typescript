@@ -10587,7 +10587,7 @@ function check(endpoint, authHeader) {
                 return ["Auth header was malformed, must look like `key: value`"];
             }
             client.defaults.headers.common[key] = value;
-            if (basicError) {
+            if (!basicError) {
                 errors.push("Auth was not enforced for endpoint");
             }
             const authError = yield basic(client);

@@ -15,7 +15,7 @@ export async function check(endpoint: string, authHeader: string): Promise<strin
             return ["Auth header was malformed, must look like `key: value`"]
         }
         client.defaults.headers.common[key] = value
-        if (basicError) {
+        if (!basicError) {
             errors.push("Auth was not enforced for endpoint")
         }
         const authError = await basic(client)
