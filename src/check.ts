@@ -1,21 +1,46 @@
-import axios, {AxiosError} from "axios"
+// eslint-disable-next-line import/named
+import axios, {AxiosError, AxiosInstance} from "axios"
 
-export async function check(endpoint: string): Promise<string[]> {
+export async function check(endpoint: string, authHeader: string): Promise<string[]> {
+    const client = axios.create({
+        baseURL: endpoint,
+    })
     const errors: string[] = []
+    const basicError = await basic(client)
+    if (authHeader.length > 0) {
+        const [key, value] = authHeader.split(":").map(str => str.trim())
+        if (value === undefined) {
+            return ["Auth header was malformed, must look like `key: value`"]
+        }
+        client.defaults.headers.common[key] = value
+        if (!basicError) {
+            errors.push("Auth was not enforced for endpoint")
+        }
+        const authError = await basic(client)
+        if (authError) {
+            errors.push(`Auth failed: ${authError}`)
+        }
+    } else if (basicError) {
+        errors.push(`Basic check failed: ${basicError}`)
+    }
+    return errors
+}
+
+async function basic(client: AxiosInstance): Promise<string | null> {
     try {
-        const response = await axios.post(endpoint, {query: "query{__typename}"})
+        const response = await client.post("", {query: "query{__typename}"})
         if (response && response?.data?.data?.__typename !== "Query") {
-            errors.push(`Unexpected response: ${JSON.stringify(response?.data)}`)
+            return `Unexpected response: ${JSON.stringify(response?.data)}`
         }
     } catch (unknownError) {
         const error = unknownError as AxiosError
         if (error.response) {
-            errors.push(`HTTP ${error.response.status}: ${error.response.statusText}`)
+            return `HTTP ${error.response.status}: ${error.response.statusText}`
         } else if (error.request) {
-            errors.push(`No response from server`)
+            return `No response from server`
         } else {
-            errors.push(error.message)
+            return error.message
         }
     }
-    return errors
+    return null
 }

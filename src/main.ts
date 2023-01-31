@@ -4,9 +4,10 @@ import {check} from "./check"
 async function run(): Promise<void> {
     try {
         const endpoint: string = core.getInput("endpoint")
+        const authHeader: string = core.getInput("auth")
         core.debug(`Testing ${endpoint} ...`)
 
-        const errors = await check(endpoint)
+        const errors = await check(endpoint, authHeader)
 
         if (errors.length > 0) {
             const errorMessage = errors.join(",")
