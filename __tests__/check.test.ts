@@ -9,6 +9,7 @@ test("basic checks happy path", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(0)
 })
@@ -19,6 +20,7 @@ test("malformed URL", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -29,6 +31,7 @@ test("unreachable endpoint", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -39,6 +42,7 @@ test("non-JSON response", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -49,6 +53,7 @@ test("non-GraphQL response", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -59,6 +64,7 @@ test("invalid auth header", async () => {
         authHeader: "notaheader",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -69,6 +75,7 @@ test("bad auth", async () => {
         authHeader: "Authorization: bad",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -87,6 +94,7 @@ test("happy auth", async () => {
         authHeader: header(),
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(0)
 })
@@ -97,6 +105,7 @@ test("auth not enforced", async () => {
         authHeader: header(),
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -107,6 +116,7 @@ test("is subgraph", async () => {
         authHeader: header(),
         subgraph: true,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(0)
 })
@@ -117,6 +127,7 @@ test("is not subgraph", async () => {
         authHeader: header(),
         subgraph: true,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -127,6 +138,7 @@ test("introspection not allowed", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: false,
+        allowInsecureSubgraphs: false,
     })
     expect(errors).toHaveLength(1)
 })
@@ -137,6 +149,29 @@ test("introspection disabled", async () => {
         authHeader: "",
         subgraph: false,
         allowIntrospection: true,
+        allowInsecureSubgraphs: false,
+    })
+    expect(errors).toHaveLength(0)
+})
+
+test("insecure subgraph not allowed", async () => {
+    const errors = await check({
+        endpoint: `${BASE_URL}/subgraph`,
+        authHeader: "",
+        subgraph: true,
+        allowIntrospection: true,
+        allowInsecureSubgraphs: false,
+    })
+    expect(errors).toHaveLength(1)
+})
+
+test("insecure subgraph override", async () => {
+    const errors = await check({
+        endpoint: `${BASE_URL}/subgraph`,
+        authHeader: "",
+        subgraph: true,
+        allowIntrospection: true,
+        allowInsecureSubgraphs: true,
     })
     expect(errors).toHaveLength(0)
 })

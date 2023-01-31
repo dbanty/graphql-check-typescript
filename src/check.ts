@@ -3,9 +3,10 @@ import axios, {AxiosError, AxiosInstance} from "axios"
 import * as core from "@actions/core"
 
 export async function check(args: {
-    endpoint: string
     authHeader: string
+    endpoint: string
     subgraph: boolean
+    allowInsecureSubgraphs: boolean
     allowIntrospection: boolean
 }): Promise<string[]> {
     const client = axios.create({
@@ -16,8 +17,13 @@ export async function check(args: {
     core.debug(`Basic (no auth) check returned: ${basicError}`)
     if (args.authHeader.length > 0) {
         errors.push(...(await checkAuth(client, args.authHeader, basicError)))
-    } else if (basicError) {
-        errors.push(`Basic check failed: ${basicError}`)
+    } else {
+        if (basicError) {
+            errors.push(`Basic check failed: ${basicError}`)
+        }
+        if (args.subgraph && !args.allowInsecureSubgraphs) {
+            errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`")
+        }
     }
     if (args.subgraph) {
         const subgraphError = await checkSubgraph(client)

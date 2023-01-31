@@ -10584,8 +10584,13 @@ function check(args) {
         if (args.authHeader.length > 0) {
             errors.push(...(yield checkAuth(client, args.authHeader, basicError)));
         }
-        else if (basicError) {
-            errors.push(`Basic check failed: ${basicError}`);
+        else {
+            if (basicError) {
+                errors.push(`Basic check failed: ${basicError}`);
+            }
+            if (args.subgraph && !args.allowInsecureSubgraphs) {
+                errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`");
+            }
         }
         if (args.subgraph) {
             const subgraphError = yield checkSubgraph(client);
@@ -10724,7 +10729,7 @@ function parseBool({ fieldName, errors, defaultValue, }) {
     }
 }
 function run() {
-    var _a, _b;
+    var _a, _b, _c;
     return main_awaiter(this, void 0, void 0, function* () {
         try {
             const errors = [];
@@ -10736,8 +10741,12 @@ function run() {
                 errors,
                 defaultValue: subgraph,
             })) !== null && _b !== void 0 ? _b : true;
+            const allowInsecureSubgraphs = (_c = parseBool({
+                fieldName: "insecure_subgraph",
+                errors,
+            })) !== null && _c !== void 0 ? _c : false;
             core.debug(`Testing ${endpoint} ...`);
-            errors.push(...(yield check({ endpoint, authHeader, subgraph, allowIntrospection })));
+            errors.push(...(yield check({ endpoint, authHeader, subgraph, allowIntrospection, allowInsecureSubgraphs })));
             if (errors.length > 0) {
                 const errorMessage = errors.join(",");
                 core.setOutput("error", errorMessage);

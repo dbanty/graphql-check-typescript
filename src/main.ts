@@ -35,10 +35,15 @@ async function run(): Promise<void> {
                 errors,
                 defaultValue: subgraph,
             }) ?? true
+        const allowInsecureSubgraphs =
+            parseBool({
+                fieldName: "insecure_subgraph",
+                errors,
+            }) ?? false
 
         core.debug(`Testing ${endpoint} ...`)
 
-        errors.push(...(await check({endpoint, authHeader, subgraph, allowIntrospection})))
+        errors.push(...(await check({endpoint, authHeader, subgraph, allowIntrospection, allowInsecureSubgraphs})))
 
         if (errors.length > 0) {
             const errorMessage = errors.join(",")
