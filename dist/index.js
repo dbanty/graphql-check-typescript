@@ -10692,11 +10692,14 @@ function run() {
                 errors.push("Input `subgraph` must be `true` or `false`");
             }
             core.debug(`Testing ${endpoint} ...`);
-            errors.concat(yield check(endpoint, authHeader, subgraph));
+            errors.push(...(yield check(endpoint, authHeader, subgraph)));
             if (errors.length > 0) {
                 const errorMessage = errors.join(",");
                 core.setOutput("error", errorMessage);
                 core.setFailed(errorMessage);
+            }
+            else {
+                core.debug("No errors detected");
             }
         }
         catch (error) {

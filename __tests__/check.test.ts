@@ -8,8 +8,13 @@ test("basic checks happy path", async () => {
     expect(errors).toHaveLength(0)
 })
 
-test("bad URL", async () => {
+test("malformed URL", async () => {
     const errors = await check(BASE_URL.substring(BASE_URL.lastIndexOf("/")), "", false)
+    expect(errors).toHaveLength(1)
+})
+
+test("unreachable endpoint", async () => {
+    const errors = await check("https://doesntexist.dylananthony.com", "", false)
     expect(errors).toHaveLength(1)
 })
 

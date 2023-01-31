@@ -1,5 +1,5 @@
 name: Test consuming this action
-on: [push]
+on: [ push ]
 jobs:
   basic_checks:
     runs-on: ubuntu-latest
@@ -9,7 +9,7 @@ jobs:
         uses: ./
         with:
           endpoint: https://graphql-test.up.railway.app/graphql-no-introspection
-  bad_url:
+  unreachable_endpoint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
