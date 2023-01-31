@@ -28,7 +28,7 @@ export async function check(args: {
         errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`")
     }
     const allowIntrospection = args.allowIntrospection ?? !subgraphError
-    if (allowIntrospection) {
+    if (!allowIntrospection) {
         const introspectionError = await enforceNoIntrospection(client)
         if (introspectionError) {
             errors.push(`Introspection check failed: ${introspectionError}`)

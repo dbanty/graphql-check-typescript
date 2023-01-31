@@ -10596,7 +10596,7 @@ function check(args) {
             errors.push("Insecure subgraphs are not allowed, either set `auth` or `insecure_subgraph: true`");
         }
         const allowIntrospection = (_a = args.allowIntrospection) !== null && _a !== void 0 ? _a : !subgraphError;
-        if (allowIntrospection) {
+        if (!allowIntrospection) {
             const introspectionError = yield enforceNoIntrospection(client);
             if (introspectionError) {
                 errors.push(`Introspection check failed: ${introspectionError}`);
