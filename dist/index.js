@@ -10718,6 +10718,10 @@ function parseBool({ fieldName, errors }) {
     else if (rawValue === "false") {
         return false;
     }
+    else if (rawValue === "") {
+        // A default value
+        return null;
+    }
     else {
         errors.push(`Input \`${fieldName}\` must be \`true\` or \`false\``);
         return null;
